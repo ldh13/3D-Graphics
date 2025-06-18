@@ -82,6 +82,13 @@ int main() {
 	
 	// Line
 	
+	// Triangle
+	Triangle t = {
+		.vertices = {
+			(Vec3){ 2.5f, 0.0f, 0.0f }, (Vec3){ 0.0f, 4.33f, 0.0f }, (Vec3){ -2.5f, 0.0f, 0.0f }
+		},
+	};
+	
 	// Rotation Matrices
 	Matrix4 x_rotation_matrix = rotation_xaxis(X_ROTATION_THETA);
 	Matrix4 y_rotation_matrix = rotation_yaxis(Y_ROTATION_THETA);
@@ -134,6 +141,11 @@ int main() {
 		bool line_draw_result = draw_line(buf, &cam, cube.vertices[0], cube.vertices[6], blue, pitch);
 		if (!line_draw_result) {
 			printf("Error drawing line\n");
+		}
+		// Draw triangle
+		bool triangle_draw_result = draw_triangle(buf, &cam, t, green, pitch);
+		if (!triangle_draw_result) {
+			printf("Error drawing triangle\n");
 		}
 		
 		// Update Objects

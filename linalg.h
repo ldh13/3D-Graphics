@@ -65,6 +65,8 @@ float vec2_dot_product(Vec2 v1, Vec2 v2);
 float vec2_length_squared(Vec2 v);
 float vec2_length(Vec2 v);
 Vec2 vec2_normalize(Vec2 v);
+// Signed area of the parallelogram (AB, AC)
+float signed_area(Vec2 a, Vec2 b, Vec2 c);
 
 float vec3_dot_product(Vec3 v1, Vec3 v2);
 float vec3_length_squared(Vec3 v);

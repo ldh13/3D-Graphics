@@ -128,6 +128,12 @@ Vec2 vec2_normalize(Vec2 v) {
 	return magnitude == 0.0f ? v : vec2_scale(v, 1.0f / magnitude);
 }
 
+float signed_area(Vec2 a, Vec2 b, Vec2 c) {
+	Vec2 a_b = vec2_sub(b, a);
+	Vec2 a_c = vec2_sub(c, a);
+	return a_b.x *a_c.y - a_b.y * a_c.x;
+}
+
 // 3D Vector
 float vec3_dot_product(Vec3 v1, Vec3 v2) {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;

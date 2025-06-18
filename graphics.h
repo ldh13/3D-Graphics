@@ -43,6 +43,15 @@ typedef struct {
 } Line;
 
 typedef struct {
+	IVec2 *points;
+	int count;
+} Face;
+
+typedef struct {
+	Vec3 vertices[3];
+} Triangle;
+
+typedef struct {
 	Vec3 vertices[4];
 	int edges[6][2];
 } Tetrahedron;
@@ -51,6 +60,11 @@ typedef struct {
 	Vec3 vertices[8];
 	int edges[12][2];
 } Cube;
+
+typedef struct {
+	Cube cube;
+	Triangle t_faces[12];
+} FilledCube;
 
 // ## ENUMS ## //
 typedef enum {
@@ -82,11 +96,18 @@ Vec3 world_to_viewport(Camera *cam, Vec4 v);
 
 
 // ## DRAWING  ALGORITHMS ## //
+// Input: integer approximation of the (x, y) components in viewport coordinates
+// "pixel coordinates"
 Line bresenham_line(IVec2 p0, IVec2 p1);
+// Input: viewport coordinates
+// Returns whether a point is to the left of the side v1 to v2
+Vec3 barycentric_coordinates(Vec2 a, Vec2 b, Vec2 c, Vec2 point);
+bool point_in_triangle(Vec3 b_coordinates);
 
 // ## DRAWING FUNCTIONS ## //
 bool draw_object(Uint32 *buffer, int pitch, ViewObject* object);
 bool draw_line(Uint32 *buffer, Camera *cam, Vec3 from, Vec3 to, ColorRgb Color, int pitch);
+bool draw_triangle(Uint32 *buffer, Camera *cam, Triangle t, ColorRgb color, int pitch);
 bool draw_tetrahedron(Uint32 *buffer, Camera *cam, Tetrahedron th, ColorRgb color, int pitch);
 bool draw_cube(Uint32 *buffer, Camera *cam, Cube cube, ColorRgb color, int pitch);
 
@@ -97,6 +118,7 @@ ViewObject *object_to_view_object(Object *object, ColorRgb color);
 
 // ## GEOMETRIC FUNCTIONS ## //
 Line get_line_points(Vec3 from, Vec3 to, Camera *cam);
+IVec2 *get_triangle_points(Triangle t, Camera *cam, int *point_count);
 
 IVec2 *get_tetrahedron_points(Tetrahedron th, Camera *cam, int *point_count);
 

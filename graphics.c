@@ -15,6 +15,14 @@ const float FAR = 1000.0f;
 
 // ### FUNCTION DEFINITIONS ### //
 
+// ## INLINE FUNCTIONS ## //
+static inline float min3(float x, float y, float z) {
+	return fminf(fminf(x, y), z);
+}
+static inline float max3(float x, float y, float z) {
+	return fmaxf(fmaxf(x, y), z);
+}
+
 // ## STRUCT FUNCTIONS ## //
 // # CREATE AND DESTROY FUNCTIONS # //
 void destroy_line(Line **line) {
@@ -195,6 +203,19 @@ Line bresenham_line(IVec2 p0, IVec2 p1) {
 	return (Line){ points, index };
 }
 
+Vec3 barycentric_coordinates(Vec2 a, Vec2 b, Vec2 c, Vec2 point) {
+	float total_signed_area = signed_area(a, b, c);
+	float alpha = signed_area(point, b, c) / total_signed_area;
+	float beta = signed_area(a, point, c) / total_signed_area;
+	float gamma = signed_area(a, b, point) / total_signed_area;
+	
+	return (Vec3){ alpha, beta, gamma };
+}
+
+bool point_in_triangle(Vec3 b_coordinates) {
+	return b_coordinates.x >= 0 && b_coordinates.y >= 0 && b_coordinates.z >= 0;
+}
+
 // ## DRAWING FUNCTIONS ## //
 bool draw_object(Uint32 *buffer, int pitch, ViewObject *object) {
 	if ((!buffer) || (!object)) {
@@ -268,6 +289,60 @@ Line get_line_points(Vec3 from, Vec3 to, Camera *cam) {
 	Line line = bresenham_line((IVec2){ (int)viewport_from.x, (int)viewport_from.y}, (IVec2){ (int)viewport_to.x, (int)viewport_to.y});
 	
 	return line;
+}
+
+IVec2 *get_triangle_points(Triangle t, Camera *cam, int *point_count) {
+	if (!point_count) {
+		return NULL;
+	}
+	if (!cam) {
+		*point_count = 0;
+		return NULL;
+	}
+	
+	// World -> Viewport coordinates
+	Vec3 a = world_to_viewport(cam, vec3_homogenous(t.vertices[0], 1.0f));
+	Vec3 b = world_to_viewport(cam, vec3_homogenous(t.vertices[1], 1.0f));
+	Vec3 c = world_to_viewport(cam, vec3_homogenous(t.vertices[2], 1.0f));
+	
+	// Max Rectangular Bound
+	int min_x = (int)floorf(min3(a.x, b.x, c.x));
+	int max_x = (int)ceilf(max3(a.x, b.x, c.x));
+	int min_y = (int)floorf(min3(a.y, b.y, c.y));
+	int max_y = (int)ceilf(max3(a.y, b.y, c.y));
+	
+	// POTENTIAL FIX: Every malloc needs a free...
+	int capacity = (max_x - min_x + 1) * (max_y - min_y + 1);
+	IVec2 *points = malloc(capacity * sizeof(IVec2));
+	if (!points) {
+		*point_count = 0;
+		return NULL;
+	}
+	
+	Vec2 a_pixel = { a.x, a.y };
+	Vec2 b_pixel = { b.x, b.y };
+	Vec2 c_pixel = { c.x, c.y };
+	Vec3 b_coordinates = { 0.0f, 0.0f, 0.0f };
+	int index = 0;
+	for (int x = min_x; x < max_x; x++) {
+		for (int y = min_y; y < max_y; y++) {
+			b_coordinates = barycentric_coordinates(
+				a_pixel, b_pixel, c_pixel,
+				(Vec2){ (float)x, (float)y }
+			);
+			
+			if (point_in_triangle(b_coordinates)) {
+				// POTENTIAL FIX: This is in case of barycentric rounding error...
+				if (index < capacity) {
+					points[index] = (IVec2){ x, y };
+					index++;
+				}
+			}
+		}
+	}
+	
+	*point_count = index;
+	return points;
 }
 
 IVec2 *get_tetrahedron_points(Tetrahedron th, Camera *cam, int *point_count) {
@@ -396,6 +471,23 @@ bool draw_line(Uint32 *buffer, Camera *cam, Vec3 from, Vec3 to, ColorRgb color, 
 	}
 	ViewObject *view_object = object_to_view_object(object, color);
 	if (!view_object) {
+		return false;
+	}
+	
+	return draw_object(buffer, pitch, view_object);
+}
+
+bool draw_triangle(Uint32 *buffer, Camera *cam, Triangle t, ColorRgb color, int pitch) {
+	if (!(buffer && cam)) {
+		return false;
+	}
+	
+	int npoints;
+	IVec2 *points = get_triangle_points(t, cam, &npoints);
+	Object *object = points_to_object(points, npoints);
+	ViewObject *view_object = object_to_view_object(object, color);
+	
+	if (!(points && object && view_object)) {
 		return false;
 	}
 	
